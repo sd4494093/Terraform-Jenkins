@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+
     parameters {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
     }
@@ -7,52 +7,48 @@ pipeline {
         AWS_ACCESS_KEY_ID     = credentials('d606132b-5ac6-4e54-ad35-23af9ce87757')
         AWS_SECRET_ACCESS_KEY = credentials('d606132b-5ac6-4e54-ad35-23af9ce87757')
     }
+
+   agent  any
     stages {
-        stage('Checkout') {
+        stage('checkout') {
             steps {
-                dir("terraform") {
-                    git branch: 'main', url: "https://github.com/sd4494093/Terraform-Jenkins.git"
+                 script{
+                        dir("terraform")
+                        {
+                            git "https://github.com/sd4494093/Terraform-Jenkins.git"
+                        }
+                    }
                 }
             }
-        }
+
         stage('Plan') {
-            agent {
-                docker {
-                    image 'hashicorp/terraform:latest'
-                    // 将当前工作区的 terraform 目录挂载到容器内 /workspace，并设置工作目录
-                    args '-v ${WORKSPACE}/terraform:/workspace -w /workspace'
-                }
-            }
             steps {
-                sh 'terraform init'
-                sh 'terraform plan -out=tfplan'
-                sh 'terraform show -no-color tfplan > tfplan.txt'
+                sh 'pwd;cd terraform/ ; terraform init'
+                sh "pwd;cd terraform/ ; terraform plan -out tfplan"
+                sh 'pwd;cd terraform/ ; terraform show -no-color tfplan > tfplan.txt'
             }
         }
         stage('Approval') {
-            when {
-                not {
-                    equals expected: true, actual: params.autoApprove
-                }
-            }
-            steps {
-                script {
+           when {
+               not {
+                   equals expected: true, actual: params.autoApprove
+               }
+           }
+
+           steps {
+               script {
                     def plan = readFile 'terraform/tfplan.txt'
                     input message: "Do you want to apply the plan?",
-                          parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
-                }
-            }
-        }
+                    parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
+               }
+           }
+       }
+
         stage('Apply') {
-            agent {
-                docker {
-                    image 'hashicorp/terraform:latest'
-                    args '-v ${WORKSPACE}/terraform:/workspace -w /workspace'
-                }
-            }
             steps {
-                sh 'terraform apply -input=false tfplan'
+                sh "pwd;cd terraform/ ; terraform apply -input=false tfplan"
             }
         }
     }
-}
+
+  }
