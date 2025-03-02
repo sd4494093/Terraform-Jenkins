@@ -1,11 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'hashicorp/terraform:latest'
-            // 如果需要挂载工作区，确保容器内能访问 Jenkins 工作区；一般无需额外设置，Jenkins 会自动挂载 WORKSPACE
-            // args '-v /var/jenkins_home/workspace:/workspace'
-        }
-    }
+    agent any
     parameters {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
     }
@@ -16,20 +10,22 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // 在工作区中 checkout 代码到 terraform 目录
                 dir("terraform") {
                     git branch: 'main', url: "https://github.com/sd4494093/Terraform-Jenkins.git"
                 }
             }
         }
         stage('Plan') {
-            steps {
-                dir("terraform") {
-                    // 在容器内直接执行 terraform 命令
-                    sh 'terraform init'
-                    sh 'terraform plan -out=tfplan'
-                    sh 'terraform show -no-color tfplan > tfplan.txt'
+            agent {
+                docker {
+                    image 'hashicorp/terraform:latest'
+                    args '-v /var/jenkins_home/workspace/jenkins_terroform/terraform:/workspace -w /workspace'
                 }
+            }
+            steps {
+                sh 'terraform init'
+                sh 'terraform plan -out=tfplan'
+                sh 'terraform show -no-color tfplan > tfplan.txt'
             }
         }
         stage('Approval') {
@@ -47,10 +43,14 @@ pipeline {
             }
         }
         stage('Apply') {
-            steps {
-                dir("terraform") {
-                    sh 'terraform apply -input=false tfplan'
+            agent {
+                docker {
+                    image 'hashicorp/terraform:latest'
+                    args '-v /var/jenkins_home/workspace/jenkins_terroform/terraform:/workspace -w /workspace'
                 }
+            }
+            steps {
+                sh 'terraform apply -input=false tfplan'
             }
         }
     }
