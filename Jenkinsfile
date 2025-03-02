@@ -17,14 +17,13 @@ pipeline {
         }
         stage('Plan') {
             steps {
-                script {
-                    docker.image('hashicorp/terraform:latest').inside {
-                        dir("terraform") {
-                            sh 'terraform init'
-                            sh 'terraform plan -out=tfplan'
-                            sh 'terraform show -no-color tfplan > tfplan.txt'
-                        }
-                    }
+                dir("terraform") {
+                    // 初始化 Terraform
+                    sh "docker run --rm -v ${env.WORKSPACE}/terraform:/workspace -w /workspace hashicorp/terraform:latest terraform init"
+                    // 生成计划文件
+                    sh "docker run --rm -v ${env.WORKSPACE}/terraform:/workspace -w /workspace hashicorp/terraform:latest terraform plan -out=tfplan"
+                    // 导出计划文本
+                    sh "docker run --rm -v ${env.WORKSPACE}/terraform:/workspace -w /workspace hashicorp/terraform:latest terraform show -no-color tfplan > tfplan.txt"
                 }
             }
         }
@@ -44,12 +43,9 @@ pipeline {
         }
         stage('Apply') {
             steps {
-                script {
-                    docker.image('hashicorp/terraform:latest').inside {
-                        dir("terraform") {
-                            sh 'terraform apply -input=false tfplan'
-                        }
-                    }
+                dir("terraform") {
+                    // 应用 Terraform 计划
+                    sh "docker run --rm -v ${env.WORKSPACE}/terraform:/workspace -w /workspace hashicorp/terraform:latest terraform apply -input=false tfplan"
                 }
             }
         }
