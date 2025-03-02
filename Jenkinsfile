@@ -12,14 +12,14 @@ pipeline {
     stages {
         stage('checkout') {
             steps {
-                 script{
-                        dir("terraform")
-                        {
-                            git "https://github.com/sd4494093/Terraform-Jenkins.git"
-                        }
-                    }
-                }
+                 script {
+                     dir("terraform") {
+                         git branch: 'main', url: "https://github.com/sd4494093/Terraform-Jenkins.git"
+                     }
+                 }
             }
+        }
+
 
         stage('Plan') {
             steps {
