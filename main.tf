@@ -1,11 +1,16 @@
 provider "aws" {
-    region = "us-east-1"  
+    region = "ap-east-1"
 }
 
+
 resource "aws_instance" "foo" {
-  ami           = "ami-05fa00d4c63e32376" # us-west-2
-  instance_type = "t2.micro"
+  ami                         = "ami-0123e5d7542358c86"
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.dev-subnet-1.id
+  vpc_security_group_ids      = [aws_security_group.ec2-sg.id]
+  associate_public_ip_address = true
+
   tags = {
-      Name = "TF-Instance"
+    Name = "Jenkinspipline"
   }
 }
