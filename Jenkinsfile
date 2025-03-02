@@ -19,7 +19,8 @@ pipeline {
             agent {
                 docker {
                     image 'hashicorp/terraform:latest'
-                    args '-v /var/jenkins_home/workspace/jenkins_terroform/terraform:/workspace -w /workspace'
+                    // 将当前工作区的 terraform 目录挂载到容器内 /workspace，并设置工作目录
+                    args '-v ${WORKSPACE}/terraform:/workspace -w /workspace'
                 }
             }
             steps {
@@ -46,7 +47,7 @@ pipeline {
             agent {
                 docker {
                     image 'hashicorp/terraform:latest'
-                    args '-v /var/jenkins_home/workspace/jenkins_terroform/terraform:/workspace -w /workspace'
+                    args '-v ${WORKSPACE}/terraform:/workspace -w /workspace'
                 }
             }
             steps {
