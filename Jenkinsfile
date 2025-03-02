@@ -6,13 +6,7 @@ pipeline {
         AWS_ACCESS_KEY_ID     = credentials('7d87d588-1bf2-4211-a5ae-481c88601838')
         AWS_SECRET_ACCESS_KEY = credentials('7d87d588-1bf2-4211-a5ae-481c88601838')
     }
-    agent {
-        docker {
-            image 'hashicorp/terraform:latest'
-            // 如有需要，可以在 args 中增加挂载卷或者其他参数
-             args '-v /path/on/host:/path/in/container'
-        }
-    }
+    agent any
     stages {
         stage('Checkout') {
             steps {
@@ -23,10 +17,14 @@ pipeline {
         }
         stage('Plan') {
             steps {
-                dir("terraform") {
-                    sh 'terraform init'
-                    sh 'terraform plan -out=tfplan'
-                    sh 'terraform show -no-color tfplan > tfplan.txt'
+                script {
+                    docker.image('hashicorp/terraform:latest').inside {
+                        dir("terraform") {
+                            sh 'terraform init'
+                            sh 'terraform plan -out=tfplan'
+                            sh 'terraform show -no-color tfplan > tfplan.txt'
+                        }
+                    }
                 }
             }
         }
@@ -46,8 +44,12 @@ pipeline {
         }
         stage('Apply') {
             steps {
-                dir("terraform") {
-                    sh 'terraform apply -input=false tfplan'
+                script {
+                    docker.image('hashicorp/terraform:latest').inside {
+                        dir("terraform") {
+                            sh 'terraform apply -input=false tfplan'
+                        }
+                    }
                 }
             }
         }
