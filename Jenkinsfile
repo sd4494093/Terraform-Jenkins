@@ -1,4 +1,11 @@
 pipeline {
+    agent {
+        docker {
+            image 'hashicorp/terraform:latest'
+            // 如果需要挂载工作区，确保容器内能访问 Jenkins 工作区；一般无需额外设置，Jenkins 会自动挂载 WORKSPACE
+            // args '-v /var/jenkins_home/workspace:/workspace'
+        }
+    }
     parameters {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
     }
@@ -6,10 +13,10 @@ pipeline {
         AWS_ACCESS_KEY_ID     = credentials('d606132b-5ac6-4e54-ad35-23af9ce87757')
         AWS_SECRET_ACCESS_KEY = credentials('d606132b-5ac6-4e54-ad35-23af9ce87757')
     }
-    agent any
     stages {
         stage('Checkout') {
             steps {
+                // 在工作区中 checkout 代码到 terraform 目录
                 dir("terraform") {
                     git branch: 'main', url: "https://github.com/sd4494093/Terraform-Jenkins.git"
                 }
@@ -18,12 +25,10 @@ pipeline {
         stage('Plan') {
             steps {
                 dir("terraform") {
-                    // 初始化 Terraform
-                    sh "docker run --rm -v ${env.WORKSPACE}/terraform:/workspace -w /workspace hashicorp/terraform:latest terraform init"
-                    // 生成计划文件
-                    sh "docker run --rm -v ${env.WORKSPACE}/terraform:/workspace -w /workspace hashicorp/terraform:latest terraform plan -out=tfplan"
-                    // 导出计划文本
-                    sh "docker run --rm -v ${env.WORKSPACE}/terraform:/workspace -w /workspace hashicorp/terraform:latest terraform show -no-color tfplan > tfplan.txt"
+                    // 在容器内直接执行 terraform 命令
+                    sh 'terraform init'
+                    sh 'terraform plan -out=tfplan'
+                    sh 'terraform show -no-color tfplan > tfplan.txt'
                 }
             }
         }
@@ -44,8 +49,7 @@ pipeline {
         stage('Apply') {
             steps {
                 dir("terraform") {
-                    // 应用 Terraform 计划
-                    sh "docker run --rm -v ${env.WORKSPACE}/terraform:/workspace -w /workspace hashicorp/terraform:latest terraform apply -input=false tfplan"
+                    sh 'terraform apply -input=false tfplan'
                 }
             }
         }
